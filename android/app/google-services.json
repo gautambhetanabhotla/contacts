@@ -1,0 +1,118 @@
+{
+  "project_info": {
+    "project_number": "186569298292",
+    "project_id": "contacts-app-b0616",
+    "storage_bucket": "contacts-app-b0616.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186569298292:android:d37e5a39872b7025ec5c21",
+        "android_client_info": {
+          "package_name": "com.example.contacts"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "186569298292-u5h8qgr3o8k2m11kie2pns830qkdvf6f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsck4K8LbLnSDl12CYUuXNPAbxTYZfB7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "186569298292-u5h8qgr3o8k2m11kie2pns830qkdvf6f.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "186569298292-bqkd6m2lt88p6h0i98hnfp4fo818m6h5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.contactsApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186569298292:android:36babb6ea4449aa2ec5c21",
+        "android_client_info": {
+          "package_name": "com.example.contacts_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "186569298292-u5h8qgr3o8k2m11kie2pns830qkdvf6f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsck4K8LbLnSDl12CYUuXNPAbxTYZfB7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "186569298292-u5h8qgr3o8k2m11kie2pns830qkdvf6f.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "186569298292-bqkd6m2lt88p6h0i98hnfp4fo818m6h5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.contactsApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186569298292:android:8dbca7f9fb64ca8dec5c21",
+        "android_client_info": {
+          "package_name": "com.gautam.contacts"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "186569298292-u5h8qgr3o8k2m11kie2pns830qkdvf6f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsck4K8LbLnSDl12CYUuXNPAbxTYZfB7g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "186569298292-u5h8qgr3o8k2m11kie2pns830qkdvf6f.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "186569298292-bqkd6m2lt88p6h0i98hnfp4fo818m6h5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.contactsApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
