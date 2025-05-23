@@ -33,6 +33,7 @@ class DefaultFirebaseOptions {
           'DefaultFirebaseOptions have not been configured for linux - '
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
+        // return linux;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -86,6 +87,16 @@ class DefaultFirebaseOptions {
     authDomain: 'contacts-app-b0616.firebaseapp.com',
     storageBucket: 'contacts-app-b0616.firebasestorage.app',
     measurementId: 'G-PLJ9170RTE',
+  );
+
+  static const FirebaseOptions linux = FirebaseOptions(
+    apiKey: 'AIzaSyAnJYACRgU5hR8kSR4VEsoeRoBK31KuNNo',
+    appId: '1:186569298292:web:62a1260e6202982dec5c21',
+    messagingSenderId: '186569298292',
+    projectId: 'contacts-app-b0616',
+    authDomain: 'contacts-app-b0616.firebaseapp.com',
+    storageBucket: 'contacts-app-b0616.firebasestorage.app',
+    measurementId: 'G-X835H97L88',
   );
 
 }

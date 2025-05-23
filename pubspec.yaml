@@ -37,6 +37,7 @@ dependencies:
   firebase_core: ^3.13.0
   firebase_auth: ^5.5.3
   cloud_firestore: ^5.6.7
+  talker: ^4.7.7
 
 dev_dependencies:
   flutter_test:
@@ -90,3 +91,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  fonts:
+  - family: Inter
+    fonts:
+      - asset: fonts/Inter-VariableFont_opsz,wght.ttf

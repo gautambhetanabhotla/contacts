@@ -22,32 +22,60 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Contacts app',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      title: 'Contacts',
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        fontFamily: 'Inter',
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(fontFamily: 'Inter'),
+          displayMedium: TextStyle(fontFamily: 'Inter'),
+          displaySmall: TextStyle(fontFamily: 'Inter'),
+          headlineLarge: TextStyle(fontFamily: 'Inter'),
+          headlineMedium: TextStyle(fontFamily: 'Inter'),
+          headlineSmall: TextStyle(fontFamily: 'Inter'),
+          titleLarge: TextStyle(fontFamily: 'Inter'),
+          titleMedium: TextStyle(fontFamily: 'Inter'),
+          titleSmall: TextStyle(fontFamily: 'Inter'),
+          bodyLarge: TextStyle(fontFamily: 'Inter'),
+          bodyMedium: TextStyle(fontFamily: 'Inter'),
+          bodySmall: TextStyle(fontFamily: 'Inter'),
+          labelLarge: TextStyle(fontFamily: 'Inter'),
+          labelMedium: TextStyle(fontFamily: 'Inter'),
+          labelSmall: TextStyle(fontFamily: 'Inter'),
+        ),
       ),
-      home: const MyHomePage(title: 'Contacts'),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        fontFamily: 'Inter',
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(fontFamily: 'Inter'),
+          displayMedium: TextStyle(fontFamily: 'Inter'),
+          displaySmall: TextStyle(fontFamily: 'Inter'),
+          headlineLarge: TextStyle(fontFamily: 'Inter'),
+          headlineMedium: TextStyle(fontFamily: 'Inter'),
+          headlineSmall: TextStyle(fontFamily: 'Inter'),
+          titleLarge: TextStyle(fontFamily: 'Inter'),
+          titleMedium: TextStyle(fontFamily: 'Inter'),
+          titleSmall: TextStyle(fontFamily: 'Inter'),
+          bodyLarge: TextStyle(fontFamily: 'Inter'),
+          bodyMedium: TextStyle(fontFamily: 'Inter'),
+          bodySmall: TextStyle(fontFamily: 'Inter'),
+          labelLarge: TextStyle(fontFamily: 'Inter'),
+          labelMedium: TextStyle(fontFamily: 'Inter'),
+          labelSmall: TextStyle(fontFamily: 'Inter'),
+        ),
+      ),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -57,8 +85,6 @@ class MyHomePage extends StatefulWidget {
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
-
-  final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -75,12 +101,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       body: _pages[selectedPage],
       bottomNavigationBar: BottomNavigationBar(
