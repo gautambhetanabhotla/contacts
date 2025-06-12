@@ -1,9 +1,11 @@
+import 'package:contacts/contacts_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import './firebase_options.dart';
-import './user_profile.dart';
-import './contacts_page.dart';
+import 'pages/user_profile.dart';
+import 'pages/contacts_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,61 +17,52 @@ void main() async {
   runApp(const MyApp());
 }
 
+const interTextTheme = TextTheme(
+  displayLarge: TextStyle(fontFamily: 'Inter'),
+  displayMedium: TextStyle(fontFamily: 'Inter'),
+  displaySmall: TextStyle(fontFamily: 'Inter'),
+  headlineLarge: TextStyle(fontFamily: 'Inter'),
+  headlineMedium: TextStyle(fontFamily: 'Inter'),
+  headlineSmall: TextStyle(fontFamily: 'Inter'),
+  titleLarge: TextStyle(fontFamily: 'Inter'),
+  titleMedium: TextStyle(fontFamily: 'Inter'),
+  titleSmall: TextStyle(fontFamily: 'Inter'),
+  bodyLarge: TextStyle(fontFamily: 'Inter'),
+  bodyMedium: TextStyle(fontFamily: 'Inter'),
+  bodySmall: TextStyle(fontFamily: 'Inter'),
+  labelLarge: TextStyle(fontFamily: 'Inter'),
+  labelMedium: TextStyle(fontFamily: 'Inter'),
+  labelSmall: TextStyle(fontFamily: 'Inter'),
+);
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Contacts',
-      themeMode: ThemeMode.dark,
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
+    return Provider(
+      create: (context) => ContactsController(),
+      child: MaterialApp(
+        title: 'Contacts',
+        themeMode: ThemeMode.dark,
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.deepPurple,
+            brightness: Brightness.dark,
+          ),
+          fontFamily: 'Inter',
+          textTheme: interTextTheme,
+          useMaterial3: true,
         ),
-        fontFamily: 'Inter',
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontFamily: 'Inter'),
-          displayMedium: TextStyle(fontFamily: 'Inter'),
-          displaySmall: TextStyle(fontFamily: 'Inter'),
-          headlineLarge: TextStyle(fontFamily: 'Inter'),
-          headlineMedium: TextStyle(fontFamily: 'Inter'),
-          headlineSmall: TextStyle(fontFamily: 'Inter'),
-          titleLarge: TextStyle(fontFamily: 'Inter'),
-          titleMedium: TextStyle(fontFamily: 'Inter'),
-          titleSmall: TextStyle(fontFamily: 'Inter'),
-          bodyLarge: TextStyle(fontFamily: 'Inter'),
-          bodyMedium: TextStyle(fontFamily: 'Inter'),
-          bodySmall: TextStyle(fontFamily: 'Inter'),
-          labelLarge: TextStyle(fontFamily: 'Inter'),
-          labelMedium: TextStyle(fontFamily: 'Inter'),
-          labelSmall: TextStyle(fontFamily: 'Inter'),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          fontFamily: 'Inter',
+          textTheme: interTextTheme,
+          useMaterial3: true,
         ),
+        home: const MyHomePage(),
       ),
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        fontFamily: 'Inter',
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontFamily: 'Inter'),
-          displayMedium: TextStyle(fontFamily: 'Inter'),
-          displaySmall: TextStyle(fontFamily: 'Inter'),
-          headlineLarge: TextStyle(fontFamily: 'Inter'),
-          headlineMedium: TextStyle(fontFamily: 'Inter'),
-          headlineSmall: TextStyle(fontFamily: 'Inter'),
-          titleLarge: TextStyle(fontFamily: 'Inter'),
-          titleMedium: TextStyle(fontFamily: 'Inter'),
-          titleSmall: TextStyle(fontFamily: 'Inter'),
-          bodyLarge: TextStyle(fontFamily: 'Inter'),
-          bodyMedium: TextStyle(fontFamily: 'Inter'),
-          bodySmall: TextStyle(fontFamily: 'Inter'),
-          labelLarge: TextStyle(fontFamily: 'Inter'),
-          labelMedium: TextStyle(fontFamily: 'Inter'),
-          labelSmall: TextStyle(fontFamily: 'Inter'),
-        ),
-      ),
-      home: const MyHomePage(),
     );
   }
 }

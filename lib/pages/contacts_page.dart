@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
-import './talker.dart';
-import './contacts_controller.dart';
-import './contact_page.dart';
+import '../talker.dart';
+import '../contacts_controller.dart';
+import 'contact_page.dart';
 
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key});
@@ -16,81 +17,87 @@ class ContactsPage extends StatefulWidget {
 class _ContactsPageState extends State<ContactsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
-  late Stream<QuerySnapshot> _contactsStream;
-  
+
+  String searchQuery = '';
+  late TextEditingController searchController;
+
   @override
   void initState() {
     super.initState();
-    _setupContactsStream();
-  }
-  
-  void _setupContactsStream() {
-    final user = _auth.currentUser;
-    // print(user?.uid);
-    if (user != null) {
-      _contactsStream = _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('contacts')
-        .snapshots();
-    }
+    searchController = TextEditingController(text: searchQuery);
   }
 
   @override
   Widget build(BuildContext context) {
+    final contactsController = context.read<ContactsController>();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Contacts'),
+      // Replace the standard AppBar with a search bar
+        title: TextField(
+          controller: searchController,
+          decoration: InputDecoration(
+            hintText: 'Search contacts',
+            border: OutlineInputBorder(
+              borderRadius: const BorderRadius.all(Radius.circular(100.0)),
+            ),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: const Icon(Icons.search),
+            ),
+            suffixIcon: IconButton(
+              padding: const EdgeInsets.only(right: 10),
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                // Clear the search field
+                searchController.clear();
+                setState(() {
+                  searchQuery = '';
+                });
+              },
+            ),
+          ),
+          onChanged: (value) {
+            // Implement search functionality
+            // Filter contacts based on search query
+          },
+        ),
         actions: [
+          // Optional: Add a clear button or other actions
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.filter_list),
             onPressed: () {
-              // Implement search functionality
+              // Clear the search field
             },
           ),
         ],
       ),
-      body: _auth.currentUser == null
-          ? const Center(child: Text('You need to be logged in to view contacts'))
-          : StreamBuilder<QuerySnapshot>(
-              stream: _contactsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                if (snapshot.hasError) {
-                  return Center(child: SelectableText('Error: ${snapshot.error}'));
-                }
-                
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('No contacts found'));
-                }
-                
-                final contacts = snapshot.data!.docs
-                    .map((doc) => Contact.fromFirestore(doc))
-                    .toList();
-                
-                return ListView.builder(
-                  itemCount: contacts.length,
-                  itemBuilder: (context, index) {
-                    final contact = contacts[index];
-                    talker.debug(contact);
-                    return ListTile(
-                      leading: CircleAvatar(
-                        radius: 20,
-                        child: Text(contact.getLeadingCharacter()),
-                      ),
-                      title: Text('${contact["First name"]} ${contact["Last name"] ?? ''}'),
-                      onTap: () {
-                        _viewContactDetails(context, contact);
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+      body: StreamBuilder<List<Contact>>(
+        stream: contactsController.contactsStream,
+        builder: (context, snapshot) {
+          final contactList = snapshot.data ?? [];
+          talker.debug(contactList);
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ListView.builder(
+            itemCount: contactList.length,
+            itemBuilder: (context, index) {
+              final contact = contactList[index];
+              talker.debug(contact);
+              return ListTile(
+                leading: CircleAvatar(
+                  radius: 20,
+                  child: Text(contact.leadingCharacter ?? '?'),
+                ),
+                title: Text(contact.fullName),
+                onTap: () {
+                  _viewContactDetails(context, contact);
+                },
+              );
+            },
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
@@ -104,7 +111,7 @@ class _ContactsPageState extends State<ContactsPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ContactPage(contact: contact)
+        builder: (context) => ViewContactPage(contact: contact)
       ),
     );
   }

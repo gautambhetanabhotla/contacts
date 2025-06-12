@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProfile extends StatefulWidget {
   const UserProfile({super.key});
@@ -202,23 +203,35 @@ class _UserProfileState extends State<UserProfile> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: _auth.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        
-        final user = snapshot.data;
-        
-        if (user != null) {
-          // User is logged in, show profile
-          return _buildUserInfo(user);
-        } else {
-          // User is not logged in, show auth form
-          return _buildAuthForm();
-        }
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: const TextField(
+          decoration: InputDecoration(
+            hintText: 'Search settings',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(100.0)),
+            ),
+          ),
+        ),
+      ),
+      body: StreamBuilder<User?>(
+        stream: _auth.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          final user = snapshot.data;
+          
+          if (user != null) {
+            // User is logged in, show profile
+            return _buildUserInfo(user);
+          } else {
+            // User is not logged in, show auth form
+            return _buildAuthForm();
+          }
+        },
+      ),
     );
   }
 }
