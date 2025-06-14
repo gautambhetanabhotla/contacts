@@ -17,7 +17,7 @@ void main() async {
   runApp(const MyApp());
 }
 
-const interTextTheme = TextTheme(
+const _interTextTheme = TextTheme(
   displayLarge: TextStyle(fontFamily: 'Inter'),
   displayMedium: TextStyle(fontFamily: 'Inter'),
   displaySmall: TextStyle(fontFamily: 'Inter'),
@@ -48,17 +48,17 @@ class MyApp extends StatelessWidget {
         themeMode: ThemeMode.dark,
         darkTheme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
+            seedColor: Colors.cyan,
             brightness: Brightness.dark,
           ),
           fontFamily: 'Inter',
-          textTheme: interTextTheme,
+          textTheme: _interTextTheme,
           useMaterial3: true,
         ),
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           fontFamily: 'Inter',
-          textTheme: interTextTheme,
+          textTheme: _interTextTheme,
           useMaterial3: true,
         ),
         home: const MyHomePage(),

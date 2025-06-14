@@ -203,17 +203,26 @@ class ContactsController {
   List<Contact> _localContacts = [];
   List<Contact> _firebaseContacts = [];
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
+  StreamSubscription<User?>? _authSubscription;
 
   // Platform support flags
   bool get supportsLocalContacts => Platform.isAndroid || Platform.isIOS;
 
   ContactsController() {
-    _contactsStreamController = StreamController<List<Contact>>.broadcast();
+    _contactsStreamController = StreamController<List<Contact>>.broadcast(
+      onListen: () {
+        _emitMergedContacts();
+      }
+    );
+    _authSubscription = _auth.authStateChanges().listen((user) {
+      _initializeFirebaseStream();
+    });
     _initializeStreams();
   }
 
-  void _initializeStreams() async {
-    // Initialize Firebase stream
+  void _initializeFirebaseStream() {
+    talker.debug("Initializing Firebase contacts stream");
+    _firebaseSubscription?.cancel();
     final user = _auth.currentUser;
     if (user != null) {
       _firebaseSubscription = _firestore
@@ -222,12 +231,17 @@ class ContactsController {
           .collection('contacts')
           .snapshots()
           .listen((snapshot) {
+            talker.debug(snapshot.docs);
         _firebaseContacts = snapshot.docs
             .map((doc) => Contact.fromFirestore(doc))
             .toList();
         _emitMergedContacts();
       });
     }
+  }
+
+  void _initializeStreams() async {
+    _initializeFirebaseStream();
 
     // Initialize local contacts only on supported platforms
     if (supportsLocalContacts) {
@@ -235,9 +249,6 @@ class ContactsController {
       
       // Set up listener for local contact changes
       fc.FlutterContacts.addListener(_onLocalContactsChanged);
-    } else {
-      // On unsupported platforms, just emit Firebase contacts
-      _emitMergedContacts();
     }
   }
 
@@ -271,8 +282,9 @@ class ContactsController {
   /// It ensures that the stream always has the most up-to-date contact list.
   void _emitMergedContacts() {
     final mergedContacts = _mergeContacts(_localContacts, _firebaseContacts);
-    talker.debug("Merged contacts: ${mergedContacts.length} total");
-    talker.debug(mergedContacts);
+    talker.debug("Merged contacts: $mergedContacts");
+    talker.debug("Local contacts: $_localContacts");
+    talker.debug("Firebase contacts: $_firebaseContacts");
     _contactsStreamController.add(mergedContacts);
   }
 
@@ -362,13 +374,11 @@ class ContactsController {
   }
 
   void dispose() {
+    _authSubscription?.cancel();
     _firebaseSubscription?.cancel();
-    
-    // Only remove listener if platform supports local contacts
     if (supportsLocalContacts) {
       fc.FlutterContacts.removeListener(_onLocalContactsChanged);
     }
-    
     _contactsStreamController.close();
   }
 }

@@ -75,7 +75,7 @@ class _ContactsPageState extends State<ContactsPage> {
         stream: contactsController.contactsStream,
         builder: (context, snapshot) {
           final contactList = snapshot.data ?? [];
-          talker.debug(contactList);
+          // talker.debug(contactList);
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -83,7 +83,7 @@ class _ContactsPageState extends State<ContactsPage> {
             itemCount: contactList.length,
             itemBuilder: (context, index) {
               final contact = contactList[index];
-              talker.debug(contact);
+              // talker.debug(contact);
               return ListTile(
                 leading: CircleAvatar(
                   radius: 20,
@@ -101,7 +101,11 @@ class _ContactsPageState extends State<ContactsPage> {
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
-          _showAddContactDialog(context);
+          Navigator.push(context,
+            MaterialPageRoute(
+              builder: (context) => const AddContactPage(),
+            ),
+          );
         },
       ),
     );
@@ -116,82 +120,4 @@ class _ContactsPageState extends State<ContactsPage> {
     );
   }
 
-  void _showAddContactDialog(BuildContext context) {
-    final firstNameController = TextEditingController();
-    final lastNameController = TextEditingController();
-    final phoneController = TextEditingController();
-    final emailController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Contact'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: firstNameController,
-                decoration: InputDecoration(labelText: 'First name')
-              ),
-              TextField(
-                controller: lastNameController,
-                decoration: InputDecoration(labelText: 'Last name'),
-              ),
-              TextField(
-                controller: phoneController,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
-                keyboardType: TextInputType.phone,
-              ),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (firstNameController.text.isNotEmpty) {
-                _addContact({
-                  "First name": firstNameController.text,
-                  "Last name": lastNameController.text,
-                  "Phone numbers": [
-                    {
-                      "Country code": "+91",
-                      "Phone number": phoneController.text,
-                      "primary": true,
-                    }
-                  ],
-                  "Email addresses": [
-                    {
-                      "Email address": emailController.text,
-                      "primary": true,
-                    }
-                  ],
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addContact(Map<String, dynamic> contactData) async {
-    final user = _auth.currentUser;
-    Map<String, dynamic> newData = contactData;
-    newData["Created at"] = FieldValue.serverTimestamp();
-    if (user != null) {
-      await _firestore.collection('users').doc(user.uid).collection('contacts').add(newData);
-    }
-  }
 }
