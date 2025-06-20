@@ -191,6 +191,31 @@ class Contact {
 
     return Contact(data: data);
   }
+
+  static fc.Contact toFlutterContact(Contact contact) {
+    final name = contact["name"] ?? {};
+    final phones = contact["phones"] ?? [];
+    final emails = contact["emails"] ?? [];
+
+    return fc.Contact(
+      id: contact["androidUID"] ?? contact["iosUID"] ?? '',
+      name: fc.Name(
+        first: name["first"] ?? '',
+        last: name["last"] ?? '',
+        middle: name["middle"] ?? '',
+        prefix: name["prefix"] ?? '',
+        suffix: name["suffix"] ?? '',
+      ),
+      phones: phones.map((phone) => fc.Phone(
+        phone["number"] ?? '',
+        label: phone["label"] ?? '',
+      )).toList(),
+      emails: emails.map((email) => fc.Email(
+        email["address"] ?? '',
+        label: email["label"] ?? '',
+      )).toList(),
+    );
+  }
 }
 
 class ContactsController {

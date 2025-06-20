@@ -24,10 +24,6 @@ class ViewContactPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? firstPhone = (contact["phones"] != null && contact["phones"].isNotEmpty)
-        ? contact["phones"][0]["number"]
-        : null;
-
     return Scaffold(
       appBar: AppBar(),
       floatingActionButton: FloatingActionButton(
@@ -45,13 +41,13 @@ class ViewContactPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 60),
+            const SizedBox(height: 20),
             Center(
               child: CircleAvatar(
-                radius: 50,
+                radius: 100,
                 child: Text(
                   contact.leadingCharacter ?? '',
-                  style: const TextStyle(fontSize: 40),
+                  style: const TextStyle(fontSize: 100),
                 ),
               ),
             ),
@@ -62,23 +58,66 @@ class ViewContactPage extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.phone),
-                title: const Text('Phone'),
-                subtitle: Text(contact["phones"] != null
-                    ? contact["phones"].map((e) => e["number"]).join(', ')
-                    : 'No Phone'),
+              color: Theme.of(context).colorScheme.onSecondary,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8.0, 24.0, 8.0, 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        const SizedBox(width: 16.0), // Match ListTile's leading space
+                        Text("Phone", style: Theme.of(context).textTheme.titleLarge),
+                      ],
+                    ),
+                    for (var phone in contact["phones"] ?? [])
+                      ListTile(
+                        subtitle: Text(phone["label"] ?? 'No Label'),
+                        title: Text(phone["number"] ?? 'No Number'),
+                        trailing: IconButton(icon: const Icon(Icons.call),
+                          onPressed: () => _callNumber(phone["number"] ?? ''),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.email),
-                title: const Text('Email'),
-                subtitle: Text(contact["emails"] != null
-                    ? contact["emails"].map((e) => e["address"]).join(', ')
-                    : 'No Email'),
+            if (contact["emails"]?.isNotEmpty ?? false) Card(
+              color: Theme.of(context).colorScheme.onSecondary,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8.0, 24.0, 8.0, 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        const SizedBox(width: 16.0), // Match ListTile's leading space
+                        Text("Email", style: Theme.of(context).textTheme.titleLarge),
+                      ],
+                    ),
+                    for (var email in contact["emails"] ?? [])
+                      ListTile(
+                        subtitle: Text(email["label"] ?? 'No Label'),
+                        title: Text(email["address"] ?? 'No Address'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.email_outlined),
+                          onPressed: () {
+                            final Uri emailUri = Uri(
+                              scheme: 'mailto',
+                              path: email["address"],
+                            );
+                            launchUrl(emailUri);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -192,7 +231,7 @@ class _AddContactPageState extends State<AddContactPage> {
                 spacing: 6, // space between chips horizontally
                 runSpacing: -2, // space between lines
                 children: [
-                  !_isNamePrefixVisible ? Chip(
+                  if (!_isNamePrefixVisible) Chip(
                     label: Text("Name Prefix"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
@@ -200,8 +239,8 @@ class _AddContactPageState extends State<AddContactPage> {
                         _isNamePrefixVisible = true;
                       });
                     },
-                  ) : const SizedBox.shrink(),
-                  !_isMiddleNameVisible ? Chip(
+                  ),
+                  if (!_isMiddleNameVisible) Chip(
                     label: Text("Middle Name"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
@@ -209,8 +248,8 @@ class _AddContactPageState extends State<AddContactPage> {
                         _isMiddleNameVisible = true;
                       });
                     },
-                  ) : const SizedBox.shrink(),
-                  !_isNameSuffixVisible ? Chip(
+                  ),
+                  if (!_isNameSuffixVisible) Chip(
                     label: Text("Name Suffix"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
@@ -218,8 +257,8 @@ class _AddContactPageState extends State<AddContactPage> {
                         _isNameSuffixVisible = true;
                       });
                     },
-                  ) : const SizedBox.shrink(),
-                  !_isNicknameVisible ? Chip(
+                  ),
+                  if (!_isNicknameVisible) Chip(
                     label: Text("Nickname"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
@@ -227,39 +266,39 @@ class _AddContactPageState extends State<AddContactPage> {
                         _isNicknameVisible = true;
                       });
                     },
-                  ) : const SizedBox.shrink(),
+                  ),
                 ],
               ),
-              _isNamePrefixVisible ? TextField(
+              if (_isNamePrefixVisible) TextField(
                 controller: namePrefixController,
                 decoration: inputControllerDecoration.copyWith(
                   labelText: 'Name Prefix',
                 ),
-              ) : const SizedBox.shrink(),
+              ),
               TextField(
                 controller: firstNameController,
                 decoration: inputControllerDecoration.copyWith(
                   labelText: 'First Name',
                 ),
               ),
-              _isMiddleNameVisible ? TextField(
+              if (_isMiddleNameVisible) TextField(
                 controller: middleNameController,
                 decoration: inputControllerDecoration.copyWith(
                   labelText: 'Middle Name',
                 ),
-              ) : const SizedBox.shrink(),
+              ),
               TextField(
                 controller: lastNameController,
                 decoration: inputControllerDecoration.copyWith(
                   labelText: 'Last Name',
                 ),
               ),
-              _isNameSuffixVisible ? TextField(
+              if (_isNameSuffixVisible) TextField(
                 controller: nameSuffixController,
                 decoration: inputControllerDecoration.copyWith(
                   labelText: 'Name Suffix',
                 ),
-              ) : const SizedBox.shrink(),
+              ),
               const SizedBox(height: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +345,7 @@ class EditContactPage extends AddContactPage {
 
   @override
   void _onSave(BuildContext context) {
-    // Logic to edit an existing contact
+    // Save the new contact data
     Navigator.pop(context);
     talker.debug('EDITING CONTACT');
   }
