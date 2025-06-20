@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.contacts"
+    namespace = "com.gautam.contacts"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

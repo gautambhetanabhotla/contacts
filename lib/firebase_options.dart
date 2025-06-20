@@ -43,17 +43,17 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyAnJYACRgU5hR8kSR4VEsoeRoBK31KuNNo',
-    appId: '1:186569298292:web:62a1260e6202982dec5c21',
+    appId: '1:186569298292:web:8c9bf3e842bbc29fec5c21',
     messagingSenderId: '186569298292',
     projectId: 'contacts-app-b0616',
     authDomain: 'contacts-app-b0616.firebaseapp.com',
     storageBucket: 'contacts-app-b0616.firebasestorage.app',
-    measurementId: 'G-X835H97L88',
+    measurementId: 'G-D8HE08B6EM',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCsck4K8LbLnSDl12CYUuXNPAbxTYZfB7g',
-    appId: '1:186569298292:android:d37e5a39872b7025ec5c21',
+    appId: '1:186569298292:android:76885917e50a0431ec5c21',
     messagingSenderId: '186569298292',
     projectId: 'contacts-app-b0616',
     storageBucket: 'contacts-app-b0616.firebasestorage.app',
@@ -61,32 +61,32 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDA3GLarbSC2QKx50MQSOw7nt-BcsfS-xU',
-    appId: '1:186569298292:ios:5346c0bac3f0990fec5c21',
+    appId: '1:186569298292:ios:afe4def56f72b74bec5c21',
     messagingSenderId: '186569298292',
     projectId: 'contacts-app-b0616',
     storageBucket: 'contacts-app-b0616.firebasestorage.app',
-    iosClientId: '186569298292-mqfiaser0iijl7mf3qgnj6frecjjp5pj.apps.googleusercontent.com',
-    iosBundleId: 'com.example.contacts',
+    iosClientId: '186569298292-rs0tid1olafk8g80pn1o072ajv8r30la.apps.googleusercontent.com',
+    iosBundleId: 'com.gautam.contacts',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDA3GLarbSC2QKx50MQSOw7nt-BcsfS-xU',
-    appId: '1:186569298292:ios:5346c0bac3f0990fec5c21',
+    appId: '1:186569298292:ios:afe4def56f72b74bec5c21',
     messagingSenderId: '186569298292',
     projectId: 'contacts-app-b0616',
     storageBucket: 'contacts-app-b0616.firebasestorage.app',
-    iosClientId: '186569298292-mqfiaser0iijl7mf3qgnj6frecjjp5pj.apps.googleusercontent.com',
-    iosBundleId: 'com.example.contacts',
+    iosClientId: '186569298292-rs0tid1olafk8g80pn1o072ajv8r30la.apps.googleusercontent.com',
+    iosBundleId: 'com.gautam.contacts',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyAnJYACRgU5hR8kSR4VEsoeRoBK31KuNNo',
-    appId: '1:186569298292:web:ba881bc31218f70eec5c21',
+    appId: '1:186569298292:web:ecacaf9c27ad7df8ec5c21',
     messagingSenderId: '186569298292',
     projectId: 'contacts-app-b0616',
     authDomain: 'contacts-app-b0616.firebaseapp.com',
     storageBucket: 'contacts-app-b0616.firebasestorage.app',
-    measurementId: 'G-PLJ9170RTE',
+    measurementId: 'G-SJL37XNNXE',
   );
 
   static const FirebaseOptions linux = FirebaseOptions(
