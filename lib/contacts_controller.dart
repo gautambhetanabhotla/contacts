@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_contacts/flutter_contacts.dart' as fc;
+import 'package:hive/hive.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -17,6 +18,9 @@ class Contact {
   String? get androidUID => data['androidUID'] as String?;
   String? get iosUID => data['iosUID'] as String?;
   String? get firebaseUID => data['firebaseUID'] as String?;
+  String get localUID => 
+    Platform.isAndroid ? androidUID ?? '' : 
+    Platform.isIOS ? iosUID ?? '' : '';
 
   // Computed properties based on identifiers and platform
   bool get isLocal {
@@ -42,10 +46,9 @@ class Contact {
   @override
   int get hashCode {
     // Use the lexicographically smallest non-null UID as the primary hash
-    final uids = [androidUID, iosUID, firebaseUID]
+    final uids = [firebaseUID, androidUID, iosUID]
         .where((uid) => uid != null)
-        .toList()
-      ..sort();
+        .toList();
     
     if (uids.isEmpty) return identityHashCode(this);
     
@@ -85,7 +88,7 @@ class Contact {
 
   @override
   String toString() {
-    return 'Contact(androidUID: $androidUID, iosUID: $iosUID, firebaseUID: $firebaseUID, name: $fullName)';
+    return 'Contact(androidUID: $androidUID, iosUID: $iosUID, firebaseUID: $firebaseUID, name: $fullName, last modified at: ${data['lastModified']})';
   }
   
   factory Contact.fromFirestore(DocumentSnapshot doc) {
@@ -150,7 +153,7 @@ class Contact {
     if (contact.organizations.isNotEmpty) {
       data['organizations'] = contact.organizations.map((org) => {
         'company': org.company,
-        'jobTitle': org.title,
+        'title': org.title,
         'department': org.department,
       }).toList();
     }
@@ -192,13 +195,43 @@ class Contact {
     return Contact(data: data);
   }
 
-  static fc.Contact toFlutterContact(Contact contact) {
-    final name = contact["name"] ?? {};
-    final phones = contact["phones"] ?? [];
-    final emails = contact["emails"] ?? [];
+  fc.Contact toFlutterContact() {
+    final name = data["name"] ?? {};
+    final List phones = data["phones"] ?? [];
+    // final emails = data["emails"] ?? [];
+    final organizations = data["organizations"] ?? [];
+
+    fc.PhoneLabel stringToPhoneLabel(String label) {
+      if (label.isEmpty) return fc.PhoneLabel.mobile;
+      final labelMap = {
+        'assistant': fc.PhoneLabel.assistant,
+        'callback': fc.PhoneLabel.callback,
+        'car': fc.PhoneLabel.car,
+        'companyMain': fc.PhoneLabel.companyMain,
+        'faxHome': fc.PhoneLabel.faxHome,
+        'faxOther': fc.PhoneLabel.faxOther,
+        'faxWork': fc.PhoneLabel.faxWork,
+        'home': fc.PhoneLabel.home,
+        'iPhone': fc.PhoneLabel.iPhone,
+        'isdn': fc.PhoneLabel.isdn,
+        'main': fc.PhoneLabel.main,
+        'mms': fc.PhoneLabel.mms,
+        'mobile': fc.PhoneLabel.mobile,
+        'pager': fc.PhoneLabel.pager,
+        'radio': fc.PhoneLabel.radio,
+        'school': fc.PhoneLabel.school,
+        'telex': fc.PhoneLabel.telex,
+        'ttyTtd': fc.PhoneLabel.ttyTtd,
+        'work': fc.PhoneLabel.work,
+        'workMobile': fc.PhoneLabel.workMobile,
+        'workPager': fc.PhoneLabel.workPager,
+        'other': fc.PhoneLabel.other,
+      };
+      return labelMap[label] ?? fc.PhoneLabel.custom;
+    }
 
     return fc.Contact(
-      id: contact["androidUID"] ?? contact["iosUID"] ?? '',
+      id: data["androidUID"] ?? data["iosUID"] ?? '',
       name: fc.Name(
         first: name["first"] ?? '',
         last: name["last"] ?? '',
@@ -208,12 +241,18 @@ class Contact {
       ),
       phones: phones.map((phone) => fc.Phone(
         phone["number"] ?? '',
-        label: phone["label"] ?? '',
+        label: stringToPhoneLabel(phone["label"] ?? ''),
+        customLabel: phone["label"] ?? '',
       )).toList(),
-      emails: emails.map((email) => fc.Email(
-        email["address"] ?? '',
-        label: email["label"] ?? '',
-      )).toList(),
+      // emails: emails.map((email) => fc.Email(
+      //   email["address"] ?? '',
+      //   label: email["label"] ?? '',
+      // )).toList(),
+      // organizations: organizations.map((org) => fc.Organization(
+      //   company: org["company"] ?? '',
+      //   title: org["title"] ?? '',
+      //   department: org["department"] ?? '',
+      // )).toList(),
     );
   }
 }
@@ -227,25 +266,44 @@ class ContactsController {
 
   List<Contact> _localContacts = [];
   List<Contact> _firebaseContacts = [];
+  final Map<Contact, Contact> _mergedContacts = {};
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
   StreamSubscription<User?>? _authSubscription;
 
+  Box<Map> get _contactDataBox => Hive.box<Map>('contact_data');
+  
   // Platform support flags
   bool get supportsLocalContacts => Platform.isAndroid || Platform.isIOS;
 
-  ContactsController() {
-    _contactsStreamController = StreamController<List<Contact>>.broadcast(
+  ContactsController._();
+
+  static Future<ContactsController> create() async {
+    final controller = ContactsController._();
+    
+    controller._contactsStreamController = StreamController<List<Contact>>.broadcast(
       onListen: () {
-        _emitMergedContacts();
+        talker.info("new listener");
+        controller._emitMergedContacts();
       }
     );
-    _authSubscription = _auth.authStateChanges().listen((user) {
-      _initializeFirebaseStream();
+    
+    controller._authSubscription = controller._auth.authStateChanges().listen((user) {
+      controller._initializeFirebaseStream().then((_) {
+        talker.info("Reloading firebase");
+        controller._mergeContacts(controller._firebaseContacts);
+        controller._emitMergedContacts();
+      });
     });
-    _initializeStreams();
+    
+    // Wait for initialization to complete
+    await controller._initializeStreams();
+    controller._mergeContacts(controller._localContacts);
+    controller._mergeContacts(controller._firebaseContacts);
+    
+    return controller;
   }
 
-  void _initializeFirebaseStream() {
+  Future<void> _initializeFirebaseStream() async {
     talker.debug("Initializing Firebase contacts stream");
     _firebaseSubscription?.cancel();
     final user = _auth.currentUser;
@@ -257,23 +315,44 @@ class ContactsController {
           .snapshots()
           .listen((snapshot) {
             talker.debug(snapshot.docs);
-        _firebaseContacts = snapshot.docs
+            _firebaseContacts = snapshot.docs
             .map((doc) => Contact.fromFirestore(doc))
             .toList();
-        _emitMergedContacts();
-      });
+          });
+      _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('contacts')
+        .where('lastModified', isNull: true)
+        .get()
+        .then((snapshot) async {
+          for (final doc in snapshot.docs) {
+          await doc.reference.update({
+            'lastModified': DateTime.now().millisecondsSinceEpoch,
+          });
+          }
+        });
     }
   }
 
-  void _initializeStreams() async {
+  Future<void> _initializeStreams() async {
     _initializeFirebaseStream();
 
     // Initialize local contacts only on supported platforms
     if (supportsLocalContacts) {
       await _loadLocalContacts();
+
+      for (final contact in _localContacts) {
+        if (_contactDataBox.get(contact.localUID) == null) {
+          // If no mapping exists, create a new one
+          _contactDataBox.put(contact.localUID, {
+            'lastModified': DateTime.now().millisecondsSinceEpoch,
+          });
+        }
+      }
       
       // Set up listener for local contact changes
-      fc.FlutterContacts.addListener(_onLocalContactsChanged);
+      fc.FlutterContacts.addListener(_loadLocalContacts);
     }
   }
 
@@ -283,95 +362,118 @@ class ContactsController {
     
     try {
       if (await fc.FlutterContacts.requestPermission()) {
-        final contacts = await fc.FlutterContacts.getContacts(withProperties: true);
-        _localContacts = contacts.map((contact) => Contact.fromFlutterContact(contact)).toList();
-        _emitMergedContacts();
+        final contacts = await fc.FlutterContacts.getContacts(
+          withProperties: true,
+          withThumbnail: true,
+          withPhoto: true,
+          withAccounts: true,
+          withGroups: true,
+        );
+        _localContacts = contacts.map((contact) {
+          final c = Contact.fromFlutterContact(contact);
+          final mapping = _contactDataBox.get(c.localUID);
+          c.data['firebaseUID'] = mapping?['firebaseUID'];
+          c.data['lastModified'] = mapping?['lastModified'] ?? DateTime.now().millisecondsSinceEpoch;
+          return c;
+        }).toList();
+        // _emitMergedContacts();
       }
     } catch (e) {
       // Handle platform-specific errors gracefully
       talker.error('Error loading local contacts: $e');
       _localContacts = [];
-      _emitMergedContacts();
+      // _emitMergedContacts();
     }
   }
 
-  void _onLocalContactsChanged() {
-    if (supportsLocalContacts) {
-      _loadLocalContacts();
-    }
-  }
-
-  /// Obtains latest contacts from both local and Firebase sources,
-  /// merges them, and emits the result.
-  /// This method is called whenever local contacts change or Firebase contacts update.
-  /// It ensures that the stream always has the most up-to-date contact list.
+  /// Emits the merged contacts to the stream.
   void _emitMergedContacts() {
-    final mergedContacts = _mergeContacts(_localContacts, _firebaseContacts);
-    talker.debug("Merged contacts: $mergedContacts");
-    talker.debug("Local contacts: $_localContacts");
-    talker.debug("Firebase contacts: $_firebaseContacts");
-    _contactsStreamController.add(mergedContacts);
+    talker.debug(_mergedContacts.values.toList());
+    _contactsStreamController.add(_mergedContacts.values.toList());
   }
 
-  List<Contact> _mergeContacts(List<Contact> local, List<Contact> firebase) {
-    final Map<Contact, Contact> contactMap = {}; // To map contacts by their UIDs
+  Contact _mergeContact(Contact contact1, Contact contact2) {
+    // Start with contact1's data as base
+    final mergedData = Map<String, dynamic>.from(contact1.data);
     
-    // Add Firebase contacts first
-    for (final contact in firebase) {
-      contactMap[contact] = contact;
-    }
+    // Merge data from contact2, preferring newer timestamps when available
+    final contact1Timestamp = contact1.data['lastModified'] as int? ?? 0;
+    final contact2Timestamp = contact2.data['lastModified'] as int? ?? 0;
+    final isContact2Newer = contact2Timestamp > contact1Timestamp;
     
-    // Add local contacts only if platform supports them
-    for (final contact in local) {
-      final existingContact = contactMap[contact];
-
-      if (existingContact != null) {
-        // Both local and Firebase contact exist - merge based on lastModified timestamp
-        final localTimestamp = contact.data['lastModified'] as int? ?? 0;
-        final firebaseTimestamp = existingContact.data['lastModified'] as int? ?? 0;
-
-        // Start with the most recently modified contact's data
-        final isLocalNewer = localTimestamp >= firebaseTimestamp;
-        final mergedData = Map<String, dynamic>.from(
-          isLocalNewer ? contact.data : existingContact.data,
-        );
-
-        // Merge fields from the older contact if not present in the newer one
-        final Map<String, dynamic> olderData =
-        isLocalNewer ? existingContact.data : contact.data;
-        for (final entry in olderData.entries) {
-          if (!mergedData.containsKey(entry.key) || mergedData[entry.key] == null) {
-        mergedData[entry.key] = entry.value;
-          }
-        }
-
-        // Always preserve all UIDs if present
-        if (contact.androidUID != null) mergedData['androidUID'] = contact.androidUID;
-        if (existingContact.androidUID != null) mergedData['androidUID'] = existingContact.androidUID;
-        if (contact.iosUID != null) mergedData['iosUID'] = contact.iosUID;
-        if (existingContact.iosUID != null) mergedData['iosUID'] = existingContact.iosUID;
-        if (contact.firebaseUID != null) mergedData['firebaseUID'] = contact.firebaseUID;
-        if (existingContact.firebaseUID != null) mergedData['firebaseUID'] = existingContact.firebaseUID;
-
-        contactMap[contact] = Contact(data: mergedData);
-      } else {
-        // Only local contact
-        contactMap[contact] = contact;
+    // Merge all fields from contact2
+    for (final entry in contact2.data.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      
+      // Skip UID fields, we'll handle them separately
+      if (key == 'androidUID' || key == 'iosUID' || key == 'firebaseUID') {
+        continue;
+      }
+      
+      // If key doesn't exist in merged data or contact2 is newer, use contact2's value
+      if (!mergedData.containsKey(key) || mergedData[key] == null || (isContact2Newer && value != null) ) {
+        mergedData[key] = value;
       }
     }
     
-    return contactMap.values.toList();
+    // Always preserve all UIDs from both contacts
+    if (contact1.androidUID != null) mergedData['androidUID'] = contact1.androidUID;
+    if (contact2.androidUID != null) mergedData['androidUID'] = contact2.androidUID;
+    if (contact1.iosUID != null) mergedData['iosUID'] = contact1.iosUID;
+    if (contact2.iosUID != null) mergedData['iosUID'] = contact2.iosUID;
+    if (contact1.firebaseUID != null) mergedData['firebaseUID'] = contact1.firebaseUID;
+    if (contact2.firebaseUID != null) mergedData['firebaseUID'] = contact2.firebaseUID;
+
+    mergedData['lastModified'] = DateTime(mergedData['lastModified'] ?? DateTime.now().millisecondsSinceEpoch);
+    
+    return Contact(data: mergedData);
+  }
+
+  void _mergeContacts(List<Contact> contactList) {
+    for (final contact in contactList) {
+      if (_mergedContacts.containsKey(contact)) {
+        // Contact already exists, merge with new one
+        final existingContact = _mergedContacts[contact];
+        _mergedContacts[contact] = _mergeContact(existingContact!, contact);
+      } else {
+        // Add new contact
+        _mergedContacts[contact] = contact;
+      }
+    }
   }
 
   Future<void> addContact(Map<String, dynamic> contactData) async {
     final user = _auth.currentUser;
+    late final String firebaseUID;
+    
+    final c = Contact(data: contactData);
+    late final fc.Contact c2;
+    try {
+      c2 = await c.toFlutterContact().insert();
+    } catch (e) {
+      talker.error('Error inserting contact: $e');
+      return;
+    }
     if (user != null) {
-      await _firestore
+      final docref = await _firestore
           .collection('users')
           .doc(user.uid)
           .collection('contacts')
           .add(contactData);
+      firebaseUID = docref.id;
     }
+    final localUID = c2.id;
+    c.data['androidUID'] = Platform.isAndroid ? localUID : null;
+    c.data['iosUID'] = Platform.isIOS ? localUID : null;
+    c.data['firebaseUID'] = firebaseUID;
+    _mergeContacts([c]);
+    _emitMergedContacts();
+    // Update Hive mapping
+    await _contactDataBox.put(localUID, {
+      'firebaseUID': firebaseUID,
+      'lastModified': DateTime.now().millisecondsSinceEpoch,
+    });
   }
 
   Future<void> updateContact(String contactId, Map<String, dynamic> updatedData) async {
@@ -402,7 +504,7 @@ class ContactsController {
     _authSubscription?.cancel();
     _firebaseSubscription?.cancel();
     if (supportsLocalContacts) {
-      fc.FlutterContacts.removeListener(_onLocalContactsChanged);
+      fc.FlutterContacts.removeListener(_loadLocalContacts);
     }
     _contactsStreamController.close();
   }

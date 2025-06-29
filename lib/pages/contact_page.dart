@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../contacts_controller.dart';
 import '../talker.dart';
@@ -30,7 +31,7 @@ class ViewContactPage extends StatelessWidget {
         onPressed: () {
           Navigator.push(context,
             MaterialPageRoute(
-              builder: (context) => EditContactPage(contactData: contact.data),
+              builder: (context) => EditContactPage(initialContactData: contact.data),
             ),
           );
         },
@@ -128,15 +129,42 @@ class ViewContactPage extends StatelessWidget {
 }
 
 class AddContactPage extends StatefulWidget {
-  const AddContactPage({super.key, this.contactData});
+  const AddContactPage({super.key, this.initialContactData});
 
   final String title = "New contact";
-  final Map<String, dynamic>? contactData;
+  final Map<String, dynamic>? initialContactData;
 
-  void _onSave(BuildContext context) {
-    // Logic to save the edited contact
-    Navigator.pop(context);
-    talker.debug("ADDING CONTACT");
+  // Widget method that can be overridden
+  Future<void> onSave(BuildContext context, Map<String, dynamic> contactData, Function(bool) setLoadingState) async {
+    setLoadingState(true);
+    
+    try {
+      final controller = context.read<ContactsController?>();
+      
+      if (controller == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Contacts controller not available')),
+          );
+        }
+        return;
+      }
+
+      await controller.addContact(contactData);
+      
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+      
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving contact: $e')),
+        );
+      }
+    } finally {
+      setLoadingState(false);
+    }
   }
 
   @override
@@ -163,29 +191,35 @@ class _AddContactPageState extends State<AddContactPage> {
   void initState() {
     super.initState();
 
-    _isNamePrefixVisible = widget.contactData?['name']['prefix'] != null && widget.contactData?['name']['prefix'].isNotEmpty;
-    _isMiddleNameVisible = widget.contactData?['name']['middle'] != null && widget.contactData?['name']['middle'].isNotEmpty;
-    _isNameSuffixVisible = widget.contactData?['name']['suffix'] != null && widget.contactData?['name']['suffix'].isNotEmpty;
-    _isNicknameVisible = widget.contactData?['nickname'] != null && widget.contactData?['nickname'].isNotEmpty;
+    _isNamePrefixVisible = widget.initialContactData?['name']['prefix'] != null && widget.initialContactData?['name']['prefix'].isNotEmpty;
+    _isMiddleNameVisible = widget.initialContactData?['name']['middle'] != null && widget.initialContactData?['name']['middle'].isNotEmpty;
+    _isNameSuffixVisible = widget.initialContactData?['name']['suffix'] != null && widget.initialContactData?['name']['suffix'].isNotEmpty;
+    _isNicknameVisible = widget.initialContactData?['nickname'] != null && widget.initialContactData?['nickname'].isNotEmpty;
 
-    namePrefixController = TextEditingController(text: widget.contactData?['name']['prefix'] ?? '');
-    firstNameController = TextEditingController(text: widget.contactData?['name']['first'] ?? '');
-    middleNameController = TextEditingController(text: widget.contactData?['name']['middle'] ?? '');
-    lastNameController = TextEditingController(text: widget.contactData?['name']['last'] ?? '');
-    nameSuffixController = TextEditingController(text: widget.contactData?['name']['suffix'] ?? '');
-    nicknameController = TextEditingController(text: widget.contactData?['nickname'] ?? '');
-    phoneControllers = (widget.contactData?['phones'] as List<dynamic>?)?.map((phone) {
+    namePrefixController = TextEditingController(text: widget.initialContactData?['name']['prefix'] ?? '');
+    firstNameController = TextEditingController(text: widget.initialContactData?['name']['first'] ?? '');
+    middleNameController = TextEditingController(text: widget.initialContactData?['name']['middle'] ?? '');
+    lastNameController = TextEditingController(text: widget.initialContactData?['name']['last'] ?? '');
+    nameSuffixController = TextEditingController(text: widget.initialContactData?['name']['suffix'] ?? '');
+    nicknameController = TextEditingController(text: widget.initialContactData?['nickname'] ?? '');
+    phoneControllers = (widget.initialContactData?['phones'] as List<dynamic>?)?.map((phone) {
       return {
         'number': TextEditingController(text: phone['number'] ?? ''),
         'label': TextEditingController(text: phone['label'] ?? ''),
       };
-    }).toList() ?? [];
-    emailControllers = (widget.contactData?['emails'] as List<dynamic>?)?.map((email) {
+    }).toList() ?? [{
+      'number': TextEditingController(),
+      'label': TextEditingController(),
+    }];
+    emailControllers = (widget.initialContactData?['emails'] as List<dynamic>?)?.map((email) {
       return {
         'address': TextEditingController(text: email['address'] ?? ''),
         'label': TextEditingController(text: email['label'] ?? ''),
       };
-    }).toList() ?? [];
+    }).toList() ?? [{
+      'address': TextEditingController(),
+      'label': TextEditingController(),
+    }];
   }
 
   final inputControllerDecoration = const InputDecoration(
@@ -194,6 +228,15 @@ class _AddContactPageState extends State<AddContactPage> {
       borderRadius: BorderRadius.all(Radius.circular(8.0)),
     ),
   );
+
+  bool _isLoading = false;
+  void _setLoadingState(bool loading) {
+    if (mounted) {
+      setState(() {
+        _isLoading = loading;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -328,23 +371,49 @@ class _AddContactPageState extends State<AddContactPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => widget._onSave(context),
+        onPressed: () => widget.onSave(context, {
+          'name': {
+            'prefix': namePrefixController.text,
+            'first': firstNameController.text,
+            'middle': middleNameController.text,
+            'last': lastNameController.text,
+            'suffix': nameSuffixController.text,
+          },
+          'nickname': nicknameController.text,
+          'phones': phoneControllers.where(
+            (element) => element['number']?.text.isNotEmpty == true)
+            .map((controller) {
+              return {
+                'number': controller['number']?.text ?? '',
+                'label': controller['label']?.text ?? '',
+              };
+          }).toList(),
+          'emails': emailControllers.where(
+            (element) => element['address']?.text.isNotEmpty == true)
+            .map((controller) {
+              return {
+                'address': controller['address']?.text ?? '',
+                'label': controller['label']?.text ?? '',
+              };
+          }).toList(),
+          'lastModified': DateTime.now().millisecondsSinceEpoch,
+        }, _setLoadingState),
         tooltip: 'Save',
-        child: const Icon(Icons.check),
+        child: _isLoading ? const CircularProgressIndicator() : const Icon(Icons.check),
       ),
     );
   }
 }
 
 class EditContactPage extends AddContactPage {
-  const EditContactPage({super.key, required super.contactData});
+  const EditContactPage({super.key, required super.initialContactData});
   // final Map<String, dynamic> contactData;
 
   @override
   String get title => "Edit contact";
 
   @override
-  void _onSave(BuildContext context) {
+  Future<void> onSave(BuildContext context, Map<String, dynamic> contactData, Function(bool) setLoadingState) async {
     // Save the new contact data
     Navigator.pop(context);
     talker.debug('EDITING CONTACT');

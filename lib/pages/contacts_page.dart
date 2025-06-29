@@ -12,7 +12,6 @@ class ContactsPage extends StatefulWidget {
 }
 
 class _ContactsPageState extends State<ContactsPage> {
-
   String searchQuery = '';
   late TextEditingController searchController;
 
@@ -24,85 +23,91 @@ class _ContactsPageState extends State<ContactsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final contactsController = context.read<ContactsController>();
-    return Scaffold(
-      appBar: AppBar(
-      // Replace the standard AppBar with a search bar
-        title: TextField(
-          controller: searchController,
-          decoration: InputDecoration(
-            hintText: 'Search contacts',
-            border: OutlineInputBorder(
-              borderRadius: const BorderRadius.all(Radius.circular(100.0)),
+    return Consumer<ContactsController?>(
+      builder: (context, contactsController, child) {
+        // Handle the case where controller is still loading
+        if (contactsController == null) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
             ),
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(left: 10),
-              child: const Icon(Icons.search),
-            ),
-            suffixIcon: IconButton(
-              padding: const EdgeInsets.only(right: 10),
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                // Clear the search field
-                searchController.clear();
-                setState(() {
-                  searchQuery = '';
-                });
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search contacts',
+                border: OutlineInputBorder(
+                  borderRadius: const BorderRadius.all(Radius.circular(100.0)),
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: const Icon(Icons.search),
+                ),
+                suffixIcon: IconButton(
+                  padding: const EdgeInsets.only(right: 10),
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    searchController.clear();
+                    setState(() {
+                      searchQuery = '';
+                    });
+                  },
+                ),
+              ),
+              onChanged: (value) {
+                // Implement search functionality
               },
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () {
+                  // Filter functionality
+                },
+              ),
+            ],
           ),
-          onChanged: (value) {
-            // Implement search functionality
-            // Filter contacts based on search query
-          },
-        ),
-        actions: [
-          // Optional: Add a clear button or other actions
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // Clear the search field
-            },
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<Contact>>(
-        stream: contactsController.contactsStream,
-        builder: (context, snapshot) {
-          final contactList = snapshot.data ?? [];
-          // talker.debug(contactList);
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return ListView.builder(
-            itemCount: contactList.length,
-            itemBuilder: (context, index) {
-              final contact = contactList[index];
-              // talker.debug(contact);
-              return ListTile(
-                leading: CircleAvatar(
-                  radius: 20,
-                  child: Text(contact.leadingCharacter ?? '?'),
-                ),
-                title: Text(contact.fullName),
-                onTap: () {
-                  _viewContactDetails(context, contact);
+          body: StreamBuilder<List<Contact>>(
+            stream: contactsController.contactsStream,
+            builder: (context, snapshot) {
+              final contactList = snapshot.data ?? [];
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return ListView.builder(
+                itemCount: contactList.length,
+                itemBuilder: (context, index) {
+                  final contact = contactList[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      radius: 20,
+                      child: Text(contact.leadingCharacter ?? '?'),
+                    ),
+                    title: Text(contact.fullName),
+                    onTap: () {
+                      _viewContactDetails(context, contact);
+                    },
+                  );
                 },
               );
             },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () {
-          Navigator.push(context,
-            MaterialPageRoute(
-              builder: (context) => const AddContactPage(),
-            ),
-          );
-        },
-      ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            child: const Icon(Icons.add),
+            onPressed: () {
+              Navigator.push(context,
+                MaterialPageRoute(
+                  builder: (context) => const AddContactPage(),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -114,5 +119,4 @@ class _ContactsPageState extends State<ContactsPage> {
       ),
     );
   }
-
 }

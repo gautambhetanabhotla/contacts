@@ -27,6 +27,9 @@ class _UserProfileState extends State<UserProfile> {
   // Error message
   String? _errorMessage;
 
+  bool _syncLocally = true;
+  bool _syncToCloud = true;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -203,6 +206,7 @@ class _UserProfileState extends State<UserProfile> {
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       appBar: AppBar(
         title: const TextField(
@@ -214,23 +218,58 @@ class _UserProfileState extends State<UserProfile> {
           ),
         ),
       ),
-      body: StreamBuilder<User?>(
-        stream: _auth.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          final user = snapshot.data;
-          
-          if (user != null) {
-            // User is logged in, show profile
-            return _buildUserInfo(user);
-          } else {
-            // User is not logged in, show auth form
-            return _buildAuthForm();
-          }
-        },
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              StreamBuilder<User?>(
+                stream: _auth.authStateChanges(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  final user = snapshot.data;
+                  
+                  if (user != null) {
+                    // User is logged in, show profile
+                    return _buildUserInfo(user);
+                  } else {
+                    // User is not logged in, show auth form
+                    return _buildAuthForm();
+                  }
+                },
+              ),
+              const SizedBox(height: 16.0,),
+              ListTile(
+                leading: Text("Sync locally"),
+                trailing: Switch(
+                  value: _syncLocally,
+                  onChanged: (value) {
+                    setState(() {
+                      // value = !value;
+                      _syncLocally = value;
+                    });
+                  },
+                ),
+              ),
+              ListTile(
+                leading: Text("Sync to the cloud"),
+                trailing: Switch(
+                  value: _syncToCloud,
+                  onChanged: (value) {
+                    setState(() {
+                      // value = !value;
+                      _syncToCloud = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

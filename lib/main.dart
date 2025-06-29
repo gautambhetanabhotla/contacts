@@ -2,6 +2,7 @@ import 'package:contacts/contacts_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import './firebase_options.dart';
 import 'pages/user_profile.dart';
@@ -9,6 +10,9 @@ import 'pages/contacts_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+  await Hive.openBox<Map>('contact_data');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -38,11 +42,11 @@ const _interTextTheme = TextTheme(
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return Provider(
-      create: (context) => ContactsController(),
+    return FutureProvider<ContactsController?>(
+      create: (context) => ContactsController.create(),
+      initialData: null,
       child: MaterialApp(
         title: 'Contacts',
         themeMode: ThemeMode.dark,
@@ -70,50 +74,61 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   int selectedPage = 0;
-
-  final List<Widget> _pages = [
-    const ContactsPage(),
-    const UserProfile(),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[selectedPage],
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Contacts',
+    return Consumer<ContactsController?>(
+      builder: (context, controller, child) {
+        // Show loading while controller is being created
+        if (controller == null) {
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Initializing contacts...'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Controller is ready, show the main app
+        final List<Widget> pages = [
+          const ContactsPage(),
+          const UserProfile(),
+        ];
+
+        return Scaffold(
+          body: pages[selectedPage],
+          bottomNavigationBar: BottomNavigationBar(
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people),
+                label: 'Contacts',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+            currentIndex: selectedPage,
+            onTap: (int index) {
+              setState(() {
+                selectedPage = index;
+              });
+            },
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: selectedPage,
-        onTap: (int index) {
-          setState(() {
-            selectedPage = index;
-          });
-        },
-      ),
+        );
+      },
     );
   }
 }
