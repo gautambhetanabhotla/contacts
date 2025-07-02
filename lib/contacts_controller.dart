@@ -198,7 +198,7 @@ class Contact {
   fc.Contact toFlutterContact() {
     final name = data["name"] ?? {};
     final List phones = data["phones"] ?? [];
-    // final emails = data["emails"] ?? [];
+    final List emails = data["emails"] ?? [];
     final organizations = data["organizations"] ?? [];
 
     fc.PhoneLabel stringToPhoneLabel(String label) {
@@ -230,8 +230,22 @@ class Contact {
       return labelMap[label] ?? fc.PhoneLabel.custom;
     }
 
+    fc.EmailLabel stringToEmailLabel(String label) {
+      if (label.isEmpty) return fc.EmailLabel.other;
+      final labelMap = {
+        'home': fc.EmailLabel.home,
+        'iCloud': fc.EmailLabel.iCloud,
+        'mobile': fc.EmailLabel.mobile,
+        'school': fc.EmailLabel.school,
+        'work': fc.EmailLabel.work,
+        'other': fc.EmailLabel.other,
+        'custom': fc.EmailLabel.custom,
+      };
+      return labelMap[label] ?? fc.EmailLabel.custom;
+    }
+
     return fc.Contact(
-      id: data["androidUID"] ?? data["iosUID"] ?? '',
+      id: localUID,
       name: fc.Name(
         first: name["first"] ?? '',
         last: name["last"] ?? '',
@@ -244,10 +258,11 @@ class Contact {
         label: stringToPhoneLabel(phone["label"] ?? ''),
         customLabel: phone["label"] ?? '',
       )).toList(),
-      // emails: emails.map((email) => fc.Email(
-      //   email["address"] ?? '',
-      //   label: email["label"] ?? '',
-      // )).toList(),
+      emails: emails.map((email) => fc.Email(
+        email["address"] ?? '',
+        label: stringToEmailLabel(email["label"] ?? ''),
+        customLabel: email["label"] ?? '',
+      )).toList(),
       // organizations: organizations.map((org) => fc.Organization(
       //   company: org["company"] ?? '',
       //   title: org["title"] ?? '',
@@ -282,7 +297,7 @@ class ContactsController {
     
     controller._contactsStreamController = StreamController<List<Contact>>.broadcast(
       onListen: () {
-        talker.info("new listener");
+        // talker.info("new listener");
         controller._emitMergedContacts();
       }
     );
@@ -425,7 +440,7 @@ class ContactsController {
     if (contact1.firebaseUID != null) mergedData['firebaseUID'] = contact1.firebaseUID;
     if (contact2.firebaseUID != null) mergedData['firebaseUID'] = contact2.firebaseUID;
 
-    mergedData['lastModified'] = DateTime(mergedData['lastModified'] ?? DateTime.now().millisecondsSinceEpoch);
+    mergedData['lastModified'] = mergedData['lastModified'] ?? DateTime.now().millisecondsSinceEpoch;
     
     return Contact(data: mergedData);
   }
@@ -472,32 +487,46 @@ class ContactsController {
     // Update Hive mapping
     await _contactDataBox.put(localUID, {
       'firebaseUID': firebaseUID,
-      'lastModified': DateTime.now().millisecondsSinceEpoch,
+      'lastModified': c.data['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
     });
   }
 
-  Future<void> updateContact(String contactId, Map<String, dynamic> updatedData) async {
+  Future<void> editContact(Map<String, dynamic> updatedData) async {
+    final c = Contact(data: updatedData);
+    talker.debug(updatedData);
+    final fc.Contact c2 = c.toFlutterContact();
+    talker.debug(c);
+    if (c.isLocal) await c2.update();
     final user = _auth.currentUser;
-    if (user != null) {
+    if (user != null && c.isBackedUp) {
       await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .collection('contacts')
-          .doc(contactId)
-          .update(updatedData);
+      .collection('users')
+      .doc(user.uid)
+      .collection('contacts')
+      .doc(c.firebaseUID)
+      .update(updatedData);
     }
+    // Update Hive mapping
+    if (c.isLocal) {
+      await _contactDataBox.put(c.localUID, {
+        'firebaseUID': c.firebaseUID,
+        'lastModified': c.data['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+    _mergeContacts([c]);
+    _emitMergedContacts();
   }
 
-  Future<void> deleteContact(String contactId) async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .collection('contacts')
-          .doc(contactId)
-          .delete();
-    }
+  Future<void> deleteContact(Map<String, dynamic> contactData) async {
+    // final user = _auth.currentUser;
+    // if (user != null) {
+    //   await _firestore
+    //       .collection('users')
+    //       .doc(user.uid)
+    //       .collection('contacts')
+    //       .doc(contactId)
+    //       .delete();
+    // }
   }
 
   void dispose() {

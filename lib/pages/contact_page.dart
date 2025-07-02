@@ -25,6 +25,7 @@ class ViewContactPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    talker.debug(contact.data);
     return Scaffold(
       appBar: AppBar(),
       floatingActionButton: FloatingActionButton(
@@ -240,6 +241,7 @@ class _AddContactPageState extends State<AddContactPage> {
 
   @override
   Widget build(BuildContext context) {
+    // talker.debug(widget.initialContactData?['emails']);
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -269,13 +271,17 @@ class _AddContactPageState extends State<AddContactPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              // const SizedBox(height: 30),
               Wrap(
                 spacing: 6, // space between chips horizontally
-                runSpacing: -2, // space between lines
+                runSpacing: -4, // space between lines
                 children: [
                   if (!_isNamePrefixVisible) Chip(
-                    label: Text("Name Prefix"),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    padding: const EdgeInsets.all(4.0),
+                    label: Text("Name prefix"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
                       setState(() {
@@ -284,7 +290,11 @@ class _AddContactPageState extends State<AddContactPage> {
                     },
                   ),
                   if (!_isMiddleNameVisible) Chip(
-                    label: Text("Middle Name"),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    padding: const EdgeInsets.all(4.0),
+                    label: Text("Middle name"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
                       setState(() {
@@ -293,7 +303,11 @@ class _AddContactPageState extends State<AddContactPage> {
                     },
                   ),
                   if (!_isNameSuffixVisible) Chip(
-                    label: Text("Name Suffix"),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    padding: const EdgeInsets.all(4.0),
+                    label: Text("Name suffix"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
                       setState(() {
@@ -302,6 +316,10 @@ class _AddContactPageState extends State<AddContactPage> {
                     },
                   ),
                   if (!_isNicknameVisible) Chip(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    padding: const EdgeInsets.all(4.0),
                     label: Text("Nickname"),
                     deleteIcon: const Icon(Icons.add),
                     onDeleted: () {
@@ -345,13 +363,15 @@ class _AddContactPageState extends State<AddContactPage> {
               const SizedBox(height: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 10,
                 children: [
-                  ...phoneControllers.map((controller) => TextField(
-                    controller: controller['number'],
-                    decoration: inputControllerDecoration.copyWith(
-                      labelText: 'Phone Number',
+                  for (var controller in phoneControllers)
+                    TextField(
+                      controller: controller['number'],
+                      decoration: inputControllerDecoration.copyWith(
+                        labelText: 'Phone Number',
+                      ),
                     ),
-                  )),
                   TextButton.icon(
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text('Add Phone Number'),
@@ -363,15 +383,45 @@ class _AddContactPageState extends State<AddContactPage> {
                         });
                       });
                     },
-                  )
+                  ),
                 ],
               ),
+              
+              // const SizedBox(height: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 10,
+                children: [
+                  for (var controller in emailControllers)
+                    TextField(
+                      controller: controller['address'],
+                      decoration: inputControllerDecoration.copyWith(
+                        labelText: 'Email Address',
+                      ),
+                    ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('Add email'),
+                    onPressed: () {
+                      setState(() {
+                        emailControllers.add({
+                          'address': TextEditingController(),
+                          'label': TextEditingController(),
+                        });
+                      });
+                    },
+                  )
+                ],
+              )
             ],
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => widget.onSave(context, {
+          'androidUID': widget.initialContactData?['androidUID'],
+          'iosUID': widget.initialContactData?['iosUID'],
+          'firebaseUID': widget.initialContactData?['firebaseUID'],
           'name': {
             'prefix': namePrefixController.text,
             'first': firstNameController.text,
@@ -414,8 +464,34 @@ class EditContactPage extends AddContactPage {
 
   @override
   Future<void> onSave(BuildContext context, Map<String, dynamic> contactData, Function(bool) setLoadingState) async {
-    // Save the new contact data
-    Navigator.pop(context);
-    talker.debug('EDITING CONTACT');
+    setLoadingState(true);
+    
+    try {
+      final controller = context.read<ContactsController?>();
+      
+      if (controller == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Contacts controller not available')),
+          );
+        }
+        return;
+      }
+
+      await controller.editContact(contactData);
+      
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+      
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving contact: $e')),
+        );
+      }
+    } finally {
+      setLoadingState(false);
+    }
   }
 }
