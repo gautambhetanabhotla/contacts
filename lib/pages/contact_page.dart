@@ -15,7 +15,6 @@ class ViewContactPage extends StatelessWidget {
     // Remove all spaces from the number
     final sanitizedNumber = number.replaceAll(RegExp(r'\s+'), '');
     final Uri url = Uri(scheme: 'tel', path: sanitizedNumber);
-    // final Uri url = Uri.parse('https://google.com');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
@@ -25,106 +24,141 @@ class ViewContactPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    talker.debug(contact.data);
-    return Scaffold(
-      appBar: AppBar(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(context,
-            MaterialPageRoute(
-              builder: (context) => EditContactPage(initialContactData: contact.data),
-            ),
+    return Consumer<ContactsController?>(
+      builder: (context, controller, child) {
+        if (controller == null) {
+          talker.warning("Null controller");
+          return Scaffold(
+            appBar: AppBar(),
+            body: Center(child: CircularProgressIndicator()),
           );
-        },
-        child: const Icon(Icons.edit),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Center(
-              child: CircleAvatar(
-                radius: 100,
-                child: Text(
-                  contact.leadingCharacter ?? '',
-                  style: const TextStyle(fontSize: 100),
-                ),
+        }
+
+        return StreamBuilder<List<Contact>>(
+          stream: controller.contactsStream,
+          initialData: controller.mergedContacts.values.toList(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              talker.warning("No data");
+              return Scaffold(
+                appBar: AppBar(),
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            // Find the updated contact from the stream
+            Contact? updatedContact;
+            try {
+              updatedContact = snapshot.data!.firstWhere((c) => c == contact);
+            } catch (e) {
+              // Contact not found, might have been deleted
+              updatedContact = contact; // Fallback to original
+            }
+
+            return Scaffold(
+              appBar: AppBar(),
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(context,
+                    MaterialPageRoute(
+                      builder: (context) => EditContactPage(initialContactData: updatedContact!.data),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.edit),
               ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                contact.fullName,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-            const SizedBox(height: 40),
-            Card(
-              color: Theme.of(context).colorScheme.onSecondary,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8.0, 24.0, 8.0, 8.0),
+              body: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        const SizedBox(width: 16.0), // Match ListTile's leading space
-                        Text("Phone", style: Theme.of(context).textTheme.titleLarge),
-                      ],
-                    ),
-                    for (var phone in contact["phones"] ?? [])
-                      ListTile(
-                        subtitle: Text(phone["label"] ?? 'No Label'),
-                        title: Text(phone["number"] ?? 'No Number'),
-                        trailing: IconButton(icon: const Icon(Icons.call),
-                          onPressed: () => _callNumber(phone["number"] ?? ''),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: CircleAvatar(
+                        radius: 100,
+                        child: Text(
+                          updatedContact.leadingCharacter ?? '',
+                          style: const TextStyle(fontSize: 100),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        updatedContact.fullName,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    Card(
+                      color: Theme.of(context).colorScheme.onSecondary,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8.0, 24.0, 8.0, 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const SizedBox(width: 16.0),
+                                Text("Phone", style: Theme.of(context).textTheme.titleLarge),
+                              ],
+                            ),
+                            for (var phone in updatedContact["phones"] ?? [])
+                              ListTile(
+                                subtitle: Text(phone["label"] ?? 'No Label'),
+                                title: Text(phone["number"] ?? 'No Number'),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.call),
+                                  onPressed: () => _callNumber(phone["number"] ?? ''),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (updatedContact["emails"]?.isNotEmpty ?? false) Card(
+                      color: Theme.of(context).colorScheme.onSecondary,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8.0, 24.0, 8.0, 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const SizedBox(width: 16.0),
+                                Text("Email", style: Theme.of(context).textTheme.titleLarge),
+                              ],
+                            ),
+                            for (var email in updatedContact["emails"] ?? [])
+                              ListTile(
+                                subtitle: Text(email["label"] ?? 'No Label'),
+                                title: Text(email["address"] ?? 'No Address'),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.email_outlined),
+                                  onPressed: () {
+                                    final Uri emailUri = Uri(
+                                      scheme: 'mailto',
+                                      path: email["address"],
+                                    );
+                                    launchUrl(emailUri);
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            if (contact["emails"]?.isNotEmpty ?? false) Card(
-              color: Theme.of(context).colorScheme.onSecondary,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8.0, 24.0, 8.0, 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        const SizedBox(width: 16.0), // Match ListTile's leading space
-                        Text("Email", style: Theme.of(context).textTheme.titleLarge),
-                      ],
-                    ),
-                    for (var email in contact["emails"] ?? [])
-                      ListTile(
-                        subtitle: Text(email["label"] ?? 'No Label'),
-                        title: Text(email["address"] ?? 'No Address'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.email_outlined),
-                          onPressed: () {
-                            final Uri emailUri = Uri(
-                              scheme: 'mailto',
-                              path: email["address"],
-                            );
-                            launchUrl(emailUri);
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }

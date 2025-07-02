@@ -281,7 +281,7 @@ class ContactsController {
 
   List<Contact> _localContacts = [];
   List<Contact> _firebaseContacts = [];
-  final Map<Contact, Contact> _mergedContacts = {};
+  final Map<Contact, Contact> mergedContacts = {};
   StreamSubscription<QuerySnapshot>? _firebaseSubscription;
   StreamSubscription<User?>? _authSubscription;
 
@@ -297,7 +297,7 @@ class ContactsController {
     
     controller._contactsStreamController = StreamController<List<Contact>>.broadcast(
       onListen: () {
-        // talker.info("new listener");
+        talker.info("new listener");
         controller._emitMergedContacts();
       }
     );
@@ -403,8 +403,8 @@ class ContactsController {
 
   /// Emits the merged contacts to the stream.
   void _emitMergedContacts() {
-    talker.debug(_mergedContacts.values.toList());
-    _contactsStreamController.add(_mergedContacts.values.toList());
+    talker.debug(mergedContacts.values.toList());
+    _contactsStreamController.add(mergedContacts.values.toList());
   }
 
   Contact _mergeContact(Contact contact1, Contact contact2) {
@@ -447,13 +447,13 @@ class ContactsController {
 
   void _mergeContacts(List<Contact> contactList) {
     for (final contact in contactList) {
-      if (_mergedContacts.containsKey(contact)) {
+      if (mergedContacts.containsKey(contact)) {
         // Contact already exists, merge with new one
-        final existingContact = _mergedContacts[contact];
-        _mergedContacts[contact] = _mergeContact(existingContact!, contact);
+        final existingContact = mergedContacts[contact];
+        mergedContacts[contact] = _mergeContact(existingContact!, contact);
       } else {
         // Add new contact
-        _mergedContacts[contact] = contact;
+        mergedContacts[contact] = contact;
       }
     }
   }
