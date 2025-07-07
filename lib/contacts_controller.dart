@@ -404,6 +404,7 @@ class ContactsController {
           final c = Contact.fromFlutterContact(contact);
           final mapping = _contactDataBox.get(c.localUID);
           c.data['firebaseUID'] = mapping?['firebaseUID'];
+          c.data['relations'] = mapping?['relations'];
           c.data['lastModified'] = mapping?['lastModified'] ?? DateTime.now().millisecondsSinceEpoch;
           return c;
         }).toList();
@@ -525,6 +526,7 @@ class ContactsController {
     if (c.isLocal) {
       await _contactDataBox.put(c.localUID, {
         'firebaseUID': c.firebaseUID,
+        'relations': c.data['relations'],
         'lastModified': c.data['lastModified'] ?? DateTime.now().millisecondsSinceEpoch,
       });
     }
@@ -542,6 +544,14 @@ class ContactsController {
     //       .doc(contactId)
     //       .delete();
     // }
+  }
+
+  Contact? getContactByUIDs(Map uids) {
+    return mergedContacts[Contact(data: {
+      'androidUID': uids['androidUID'],
+      'iosUID': uids['iosUID'],
+      'firebaseUID': uids['firebaseUID'],
+    })];
   }
 
   void dispose() {

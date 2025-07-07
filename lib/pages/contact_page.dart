@@ -152,6 +152,44 @@ class ViewContactPage extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (updatedContact["relations"]?.isNotEmpty ?? false) Card(
+                      color: Theme.of(context).colorScheme.onSecondary,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8.0, 24.0, 8.0, 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const SizedBox(width: 16.0),
+                                Text("Related contacts", style: Theme.of(context).textTheme.titleLarge),
+                              ],
+                            ),
+                            ...(updatedContact["relations"].map(
+                              (relation) {
+                                final relatedContact = controller.getContactByUIDs(relation['to']);
+                                return ListTile(
+                                  title: Text(relation['name'] + " of"),
+                                  subtitle: relatedContact != null ? Text(relatedContact.fullName) : const Text("Contact doesn't exist on this device"),
+                                  trailing: relatedContact != null ? IconButton(
+                                    icon: const Icon(Icons.person),
+                                    onPressed: () {
+                                      Navigator.push(context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ViewContactPage(contact: relatedContact),
+                                        ),
+                                      );
+                                    },
+                                  ) : null,
+                                );
+                              },
+                            ).toList()),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -221,6 +259,7 @@ class _AddContactPageState extends State<AddContactPage> {
   late final TextEditingController nicknameController;
   late final List<Map<String, TextEditingController>> phoneControllers;
   late final List<Map<String, TextEditingController>> emailControllers;
+  late final List<Map<String, dynamic>> relationControllers;
 
   @override
   void initState() {
@@ -254,6 +293,15 @@ class _AddContactPageState extends State<AddContactPage> {
     }).toList() ?? [{
       'address': TextEditingController(),
       'label': TextEditingController(),
+    }];
+    relationControllers = (widget.initialContactData?['relations'] as List<dynamic>?)?.map((relation) {
+      return {
+        'name': TextEditingController(text: relation['name'] ?? ''),
+        'to': context.read<ContactsController?>()?.getContactByUIDs(relation['to']),
+      };
+    }).toList() ?? [{
+      'name': TextEditingController(),
+      'to': null,
     }];
   }
 
@@ -306,9 +354,10 @@ class _AddContactPageState extends State<AddContactPage> {
                 ),
               ),
               // const SizedBox(height: 30),
+              // Chips to add name fields
               Wrap(
                 spacing: 6, // space between chips horizontally
-                runSpacing: -4, // space between lines
+                runSpacing: -6, // space between lines
                 children: [
                   if (!_isNamePrefixVisible) Chip(
                     shape: RoundedRectangleBorder(
@@ -397,14 +446,20 @@ class _AddContactPageState extends State<AddContactPage> {
               const SizedBox(height: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 10,
+                // spacing: 10,
                 children: [
                   for (var controller in phoneControllers)
-                    TextField(
-                      controller: controller['number'],
-                      decoration: inputControllerDecoration.copyWith(
-                        labelText: 'Phone Number',
-                      ),
+                    Column(
+                      children: [
+                        TextField(
+                          controller: controller['number'],
+                          decoration: inputControllerDecoration.copyWith(
+                            labelText: 'Phone Number',
+                          ),
+                        ),
+                        if (controller != phoneControllers.last)
+                          const SizedBox(height: 10),
+                      ],
                     ),
                   TextButton.icon(
                     icon: const Icon(Icons.add_circle_outline),
@@ -420,33 +475,109 @@ class _AddContactPageState extends State<AddContactPage> {
                   ),
                 ],
               ),
-              
-              // const SizedBox(height: 20),
+              const SizedBox(height: 0),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 10,
+                // spacing: 10,
                 children: [
                   for (var controller in emailControllers)
-                    TextField(
-                      controller: controller['address'],
-                      decoration: inputControllerDecoration.copyWith(
-                        labelText: 'Email Address',
-                      ),
+                    Column(
+                      children: [
+                        TextField(
+                          controller: controller['address'],
+                          decoration: inputControllerDecoration.copyWith(
+                            labelText: 'Email Address',
+                          ),
+                        ),
+                        if (controller != emailControllers.last)
+                          const SizedBox(height: 10),
+                      ],
                     ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text('Add email'),
-                    onPressed: () {
-                      setState(() {
-                        emailControllers.add({
-                          'address': TextEditingController(),
-                          'label': TextEditingController(),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text('Add email'),
+                      onPressed: () {
+                        setState(() {
+                          emailControllers.add({
+                            'address': TextEditingController(),
+                            'label': TextEditingController(),
+                          });
                         });
-                      });
-                    },
+                      },
+                    ),
                   )
                 ],
-              )
+              ),
+
+              const SizedBox(height: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final controller in relationControllers)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: controller['name'],
+                            decoration: inputControllerDecoration.copyWith(
+                              border: const UnderlineInputBorder(),
+                              // labelText: 'Relation Name',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('of'),
+                        const SizedBox(width: 10),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: 150),
+                          child: DropdownButton<Contact?>(
+                            isExpanded: true,
+                            // menuWidth: 12,
+                            value: controller['to'],
+                            hint: const Text('Select Contact'),
+                            items: context.read<ContactsController?>()?.mergedContacts.values.map((contact) {
+                              return DropdownMenuItem<Contact?>(
+                                value: contact,
+                                child: Text(contact.fullName),
+                              );
+                            }).toList() ?? [],
+                            onChanged: (value) {
+                              setState(() {
+                                controller['to'] = value;
+                              });
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              relationControllers.remove(controller);
+                            });
+                          },
+                          icon: const Icon(Icons.delete_outline),
+                        )
+                      ],
+                    ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text('Add relations'),
+                      onPressed: () {
+                        setState(() {
+                          relationControllers.add({
+                            'name': TextEditingController(),
+                            'to': null,
+                          });
+                        });
+                      },
+                    ),
+                  )
+                ],
+              ),
             ],
           ),
         ),
@@ -479,6 +610,18 @@ class _AddContactPageState extends State<AddContactPage> {
               return {
                 'address': controller['address']?.text ?? '',
                 'label': (controller['label']?.text ?? '').isNotEmpty ? controller['label']?.text : 'home',
+              };
+          }).toList(),
+          'relations': relationControllers.where(
+            (element) => element['name']!.text.isNotEmpty == true && element['to'] != null)
+            .map((controller) {
+              return {
+                'name': controller['name']!.text,
+                'to': {
+                  'androidUID': controller['to']!.androidUID,
+                  'iosUID': controller['to']!.iosUID,
+                  'firebaseUID': controller['to']!.firebaseUID,
+                }
               };
           }).toList(),
           'lastModified': DateTime.now().millisecondsSinceEpoch,
