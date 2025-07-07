@@ -189,7 +189,16 @@ class Contact {
 
     // Add notes if available
     if (contact.notes.isNotEmpty) {
-      data['notes'] = contact.notes.map((note) => note.note).join('\n');
+      data['notes'] = contact.notes.map((note) => note.note).toList();
+    }
+
+    if (contact.accounts.isNotEmpty) {
+      data['accounts'] = contact.accounts.map((account) => {
+        'rawId': account.rawId,
+        'type': account.type,
+        'name': account.name,
+        'mimetypes': account.mimetypes,
+      }).toList();
     }
 
     return Contact(data: data);
@@ -199,7 +208,8 @@ class Contact {
     final name = data["name"] ?? {};
     final List phones = data["phones"] ?? [];
     final List emails = data["emails"] ?? [];
-    final organizations = data["organizations"] ?? [];
+    final List organizations = data["organizations"] ?? [];
+    final List accounts = data["accounts"] ?? [];
 
     fc.PhoneLabel stringToPhoneLabel(String label) {
       if (label.isEmpty) return fc.PhoneLabel.mobile;
@@ -263,11 +273,17 @@ class Contact {
         label: stringToEmailLabel(email["label"] ?? ''),
         customLabel: email["label"] ?? '',
       )).toList(),
-      // organizations: organizations.map((org) => fc.Organization(
-      //   company: org["company"] ?? '',
-      //   title: org["title"] ?? '',
-      //   department: org["department"] ?? '',
-      // )).toList(),
+      organizations: organizations.map((org) => fc.Organization(
+        company: org["company"] ?? '',
+        title: org["title"] ?? '',
+        department: org["department"] ?? '',
+      )).toList(),
+      accounts: accounts.map((account) => fc.Account(
+        account["rawId"] ?? '',
+        account["type"] ?? '',
+        account["name"] ?? '',
+        List<String>.from(account["mimetypes"] ?? []),
+      )).toList(),
     );
   }
 }
@@ -495,7 +511,6 @@ class ContactsController {
     final c = Contact(data: updatedData);
     talker.debug(updatedData);
     final fc.Contact c2 = c.toFlutterContact();
-    talker.debug(c);
     if (c.isLocal) await c2.update();
     final user = _auth.currentUser;
     if (user != null && c.isBackedUp) {

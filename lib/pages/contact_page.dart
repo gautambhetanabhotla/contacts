@@ -453,9 +453,10 @@ class _AddContactPageState extends State<AddContactPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => widget.onSave(context, {
-          'androidUID': widget.initialContactData?['androidUID'],
-          'iosUID': widget.initialContactData?['iosUID'],
-          'firebaseUID': widget.initialContactData?['firebaseUID'],
+          ...widget.initialContactData ?? {},
+          // 'androidUID': widget.initialContactData?['androidUID'],
+          // 'iosUID': widget.initialContactData?['iosUID'],
+          // 'firebaseUID': widget.initialContactData?['firebaseUID'],
           'name': {
             'prefix': namePrefixController.text,
             'first': firstNameController.text,
@@ -469,7 +470,7 @@ class _AddContactPageState extends State<AddContactPage> {
             .map((controller) {
               return {
                 'number': controller['number']?.text ?? '',
-                'label': controller['label']?.text ?? '',
+                'label': (controller['label']?.text ?? '').isNotEmpty ? controller['label']?.text : 'mobile',
               };
           }).toList(),
           'emails': emailControllers.where(
@@ -477,7 +478,7 @@ class _AddContactPageState extends State<AddContactPage> {
             .map((controller) {
               return {
                 'address': controller['address']?.text ?? '',
-                'label': controller['label']?.text ?? '',
+                'label': (controller['label']?.text ?? '').isNotEmpty ? controller['label']?.text : 'home',
               };
           }).toList(),
           'lastModified': DateTime.now().millisecondsSinceEpoch,

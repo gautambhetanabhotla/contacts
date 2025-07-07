@@ -47,7 +47,7 @@ class _ContactsPageState extends State<ContactsPage> {
                   padding: const EdgeInsets.only(left: 10),
                   child: const Icon(Icons.search),
                 ),
-                suffixIcon: IconButton(
+                suffixIcon: searchQuery.isNotEmpty ? IconButton(
                   padding: const EdgeInsets.only(right: 10),
                   icon: const Icon(Icons.clear),
                   onPressed: () {
@@ -56,10 +56,13 @@ class _ContactsPageState extends State<ContactsPage> {
                       searchQuery = '';
                     });
                   },
-                ),
+                ) : null,
               ),
               onChanged: (value) {
                 // Implement search functionality
+                setState(() {
+                  searchQuery = value;
+                });
               },
             ),
             actions: [
@@ -78,10 +81,25 @@ class _ContactsPageState extends State<ContactsPage> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
+              final filteredContacts = contactList.where((contact) {
+                if (searchQuery.isEmpty) return true;
+                final query = searchQuery.toLowerCase();
+                if (contact.fullName.toLowerCase().contains(query)) return true;
+                final emails = contact["emails"] as List<dynamic>? ?? [];
+                if (emails.any((e) => ((e as Map<String, dynamic>)["address"] as String? ?? "").toLowerCase().contains(query))) {
+                  return true;
+                }
+                final phones = contact["phones"] as List<dynamic>? ?? [];
+                if (phones.any((p) => ((p as Map<String, dynamic>)["number"] as String? ?? "").contains(query))) {
+                  return true;
+                }
+                return false;
+              }).toList();
+              
               return ListView.builder(
-                itemCount: contactList.length,
+                itemCount: filteredContacts.length,
                 itemBuilder: (context, index) {
-                  final contact = contactList[index];
+                  final contact = filteredContacts[index];
                   return ListTile(
                     leading: CircleAvatar(
                       radius: 20,
