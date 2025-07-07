@@ -69,7 +69,19 @@ class _ContactsPageState extends State<ContactsPage> {
               IconButton(
                 icon: const Icon(Icons.filter_list),
                 onPressed: () {
-                  // Filter functionality
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Advanced filters'),
+                      content: const Text('Coming soon!'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
                 },
               ),
             ],
