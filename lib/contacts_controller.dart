@@ -3,9 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_contacts/flutter_contacts.dart' as fc;
 import 'package:hive/hive.dart';
 import 'dart:async';
-import 'dart:io';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' if (dart.library.html) 'dart:html' as html;
+import 'dart:io' as io;
 import './talker.dart';
+
+bool get isAndroid => !kIsWeb && io.Platform.isAndroid;
+bool get isIOS => !kIsWeb && io.Platform.isIOS;
 
 class Contact {
   final Map<String, dynamic> data;
@@ -19,13 +23,13 @@ class Contact {
   String? get iosUID => data['iosUID'] as String?;
   String? get firebaseUID => data['firebaseUID'] as String?;
   String get localUID => 
-    Platform.isAndroid ? androidUID ?? '' : 
-    Platform.isIOS ? iosUID ?? '' : '';
+    isAndroid ? androidUID ?? '' : 
+    isIOS ? iosUID ?? '' : '';
 
   // Computed properties based on identifiers and platform
   bool get isLocal {
-    if (Platform.isAndroid) return androidUID != null;
-    if (Platform.isIOS) return iosUID != null;
+    if (isAndroid) return androidUID != null;
+    if (isIOS) return iosUID != null;
     return false; // Other platforms don't support local contacts
   }
   
@@ -113,9 +117,9 @@ class Contact {
     };
 
     // Add platform-specific identifier
-    if (Platform.isAndroid) {
+    if (isAndroid) {
       data['androidUID'] = contact.id;
-    } else if (Platform.isIOS) {
+    } else if (isIOS) {
       data['iosUID'] = contact.id;
     }
 
@@ -302,9 +306,8 @@ class ContactsController {
   StreamSubscription<User?>? _authSubscription;
 
   Box<Map> get _contactDataBox => Hive.box<Map>('contact_data');
-  
-  // Platform support flags
-  bool get supportsLocalContacts => Platform.isAndroid || Platform.isIOS;
+
+  bool get supportsLocalContacts => isAndroid || isIOS;
 
   ContactsController._();
 
@@ -313,15 +316,16 @@ class ContactsController {
     
     controller._contactsStreamController = StreamController<List<Contact>>.broadcast(
       onListen: () {
-        talker.info("new listener");
+        // talker.info("new listener");
         controller._emitMergedContacts();
       }
     );
     
     controller._authSubscription = controller._auth.authStateChanges().listen((user) {
       controller._initializeFirebaseStream().then((_) {
-        talker.info("Reloading firebase");
+        // talker.info("Reloading firebase");
         controller._mergeContacts(controller._firebaseContacts);
+        // talker.warning(controller._firebaseContacts);
         controller._emitMergedContacts();
       });
     });
@@ -335,7 +339,7 @@ class ContactsController {
   }
 
   Future<void> _initializeFirebaseStream() async {
-    talker.debug("Initializing Firebase contacts stream");
+    // talker.debug("Initializing Firebase contacts stream");
     _firebaseSubscription?.cancel();
     final user = _auth.currentUser;
     if (user != null) {
@@ -496,8 +500,8 @@ class ContactsController {
       firebaseUID = docref.id;
     }
     final localUID = c2.id;
-    c.data['androidUID'] = Platform.isAndroid ? localUID : null;
-    c.data['iosUID'] = Platform.isIOS ? localUID : null;
+    c.data['androidUID'] = isAndroid ? localUID : null;
+    c.data['iosUID'] = isIOS ? localUID : null;
     c.data['firebaseUID'] = firebaseUID;
     _mergeContacts([c]);
     _emitMergedContacts();
